@@ -159,14 +159,15 @@ fi
 # WHY:  Asked to
 #
 if [ ${exit_code} -eq ${SUCCESS} ]; then
-    my_uid=`${my_id} -u`
+    let my_uid=`${my_id} -u`
 
     for spec_file in ${spec_files} ; do
 
-        if [ "${my_uid}" != "0" ]; then
-            this_rpm=`sudo ${my_rpmbuild} --define "_topdir ${HOME}/rpmbuild" -bb ${HOME}/rpmbuild/SPECS/${spec_file} 2>&1 | ${my_egrep} "^Wrote:" | ${my_sed} -e 's?^Wrote:\ ??g'`
-        else
+        if [ ${my_uid} -eq 0 ]; then
             this_rpm=`${my_rpmbuild} --define "_topdir ${HOME}/rpmbuild" -bb ${HOME}/rpmbuild/SPECS/${spec_file} 2>&1 | ${my_egrep} "^Wrote:" | ${my_sed} -e 's?^Wrote:\ ??g'`
+        else
+            echo "INFO:  Not running as root, will use sudo for rpmbuild command"
+            this_rpm=`sudo ${my_rpmbuild} --define "_topdir ${HOME}/rpmbuild" -bb ${HOME}/rpmbuild/SPECS/${spec_file} 2>&1 | ${my_egrep} "^Wrote:" | ${my_sed} -e 's?^Wrote:\ ??g'`
         fi
 
         return_code=${?}
