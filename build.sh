@@ -10,7 +10,8 @@
 #                                   detection
 # 20141226     Jason W. Plummer     Added sorting to multiple spec file 
 #                                   detection for choreography
-#
+# 20150127     Jason W. Plummer     Added copy of RPM into repo dir
+# 
 
 ################################################################################
 # DESCRIPTION
@@ -98,7 +99,7 @@ check_command() {
 #
 if [ ${exit_code} -eq ${SUCCESS} ]; then
 
-    for command in cp dirname find mkdir pwd rpmbuild rsync sed sort ; do
+    for command in cp dirname egrep find id mkdir pwd rpmbuild rsync sed sort ; do
         check_command "${command}"
         let exit_code=${exit_code}+${return_code}
     done
@@ -158,14 +159,27 @@ fi
 # WHY:  Asked to
 #
 if [ ${exit_code} -eq ${SUCCESS} ]; then
+    my_uid=`${my_id} -u`
 
     for spec_file in ${spec_files} ; do
-        ${my_rpmbuild} --define "_topdir ${HOME}/rpmbuild" -bb ${HOME}/rpmbuild/SPECS/${spec_file}
+
+        if [ "${my_uid}" != "0" ]; then
+            this_rpm=`sudo ${my_rpmbuild} --define "_topdir ${HOME}/rpmbuild" -bb ${HOME}/rpmbuild/SPECS/${spec_file} 2>&1 | ${my_egrep} "^Wrote:" | ${my_sed} -e 's?^Wrote:\ ??g'`
+        else
+            this_rpm=`${my_rpmbuild} --define "_topdir ${HOME}/rpmbuild" -bb ${HOME}/rpmbuild/SPECS/${spec_file} 2>&1 | ${my_egrep} "^Wrote:" | ${my_sed} -e 's?^Wrote:\ ??g'`
+        fi
+
         return_code=${?}
 
         if [ ${return_code} -ne ${SUCCESS} ]; then
             echo "    ERROR:  RPM construction of ${spec_file} failed"
             let exit_code=${exit_code}+${return_code}
+        else
+
+            if [ "${this_rpm}" != "" ]; then
+                ${my_cp} "${this_rpm}" .
+            fi
+  
         fi
 
     done
