@@ -99,7 +99,7 @@ check_command() {
 #
 if [ ${exit_code} -eq ${SUCCESS} ]; then
 
-    for command in cp dirname egrep find id mkdir pwd rpmbuild rsync sed sort ; do
+    for command in chmod cp dirname egrep find id mkdir pwd rpmbuild rsync sed sort ; do
         check_command "${command}"
         let exit_code=${exit_code}+${return_code}
     done
@@ -181,6 +181,7 @@ if [ ${exit_code} -eq ${SUCCESS} ]; then
         else
 
             if [ "${this_rpm}" != "" ]; then
+                ${my_chmod} 444 "${this_rpm}"
                 ${my_cp} "${this_rpm}" .
             fi
   
