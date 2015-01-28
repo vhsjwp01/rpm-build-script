@@ -170,7 +170,10 @@ if [ ${exit_code} -eq ${SUCCESS} ]; then
             this_rpm=`sudo ${my_rpmbuild} --define "_topdir ${HOME}/rpmbuild" -bb ${HOME}/rpmbuild/SPECS/${spec_file} 2>&1 | ${my_egrep} "^Wrote:" | ${my_sed} -e 's?^Wrote:\ ??g'`
         fi
 
-        return_code=${?}
+        # No ${this_rpm} means we failed
+        if [ "${this_rpm}" = "" ]; then
+            return_code=${ERROR}
+        fi
 
         if [ ${return_code} -ne ${SUCCESS} ]; then
             echo "    ERROR:  RPM construction of ${spec_file} failed"
