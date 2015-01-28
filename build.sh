@@ -11,7 +11,8 @@
 # 20141226     Jason W. Plummer     Added sorting to multiple spec file 
 #                                   detection for choreography
 # 20150127     Jason W. Plummer     Added copy of RPM into repo dir
-# 
+# 20150128     Jason W. Plummer     Added rpmbuild output logging
+#
 
 ################################################################################
 # DESCRIPTION
@@ -99,7 +100,7 @@ check_command() {
 #
 if [ ${exit_code} -eq ${SUCCESS} ]; then
 
-    for command in chmod cp dirname egrep find id mkdir pwd rpmbuild rsync sed sort ; do
+    for command in chmod cp dirname egrep find id mkdir pwd rpmbuild rsync sed sort tee ; do
         check_command "${command}"
         let exit_code=${exit_code}+${return_code}
     done
@@ -161,14 +162,15 @@ fi
 #
 if [ ${exit_code} -eq ${SUCCESS} ]; then
     let my_uid=`${my_id} -u`
+    rpmbuild_log="/tmp/${spec_file}.rpmbuild.log"
 
     for spec_file in ${spec_files} ; do
 
         if [ ${my_uid} -eq 0 ]; then
-            this_rpm=`${my_rpmbuild} --define "_topdir ${HOME}/rpmbuild" -bb ${HOME}/rpmbuild/SPECS/${spec_file} 2>&1 | ${my_egrep} "^Wrote:" | ${my_sed} -e 's?^Wrote:\ ??g'`
+            this_rpm=`${my_rpmbuild} --define "_topdir ${HOME}/rpmbuild" -bb ${HOME}/rpmbuild/SPECS/${spec_file} 2>&1 | ${my_tee} "${rpmbuild_log}" | ${my_egrep} "^Wrote:" | ${my_sed} -e 's?^Wrote:\ ??g'`
         else
             echo "INFO:  Not running as root, will use sudo for rpmbuild command"
-            this_rpm=`sudo ${my_rpmbuild} --define "_topdir ${HOME}/rpmbuild" -bb ${HOME}/rpmbuild/SPECS/${spec_file} 2>&1 | ${my_egrep} "^Wrote:" | ${my_sed} -e 's?^Wrote:\ ??g'`
+            this_rpm=`sudo ${my_rpmbuild} --define "_topdir ${HOME}/rpmbuild" -bb ${HOME}/rpmbuild/SPECS/${spec_file} 2>&1 | ${my_tee} "${rpmbuild_log}" | ${my_egrep} "^Wrote:" | ${my_sed} -e 's?^Wrote:\ ??g'`
         fi
 
         # No ${this_rpm} means we failed
@@ -186,6 +188,10 @@ if [ ${exit_code} -eq ${SUCCESS} ]; then
                 ${my_cp} "${this_rpm}" .
             fi
   
+        fi
+
+        if [ -e "${rpmbuild_log}" ]; then
+            ${my_cp} "${rpmbuild_log}" .
         fi
 
     done
