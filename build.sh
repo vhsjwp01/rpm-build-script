@@ -127,6 +127,7 @@ fi
 # WHY:  Needed later
 #
 if [ ${exit_code} -eq ${SUCCESS} ]; then
+    umask 022
 
     for i in ${RPMBUILD_DIRS} ; do
         target_dir="${HOME}/rpmbuild/${i}"
