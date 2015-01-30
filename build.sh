@@ -101,7 +101,7 @@ check_command() {
 #
 if [ ${exit_code} -eq ${SUCCESS} ]; then
 
-    for command in chmod cp dirname egrep find hostname id mkdir pwd rm rpmbuild rsync sed sort tee wc ; do
+    for command in chmod cp dirname egrep find hostname id mkdir pwd rm rpmbuild rsync sed sort sudo tee wc ; do
         check_command "${command}"
         let exit_code=${exit_code}+${return_code}
     done
@@ -180,7 +180,7 @@ if [ ${exit_code} -eq ${SUCCESS} ]; then
                 exit_code=${ERROR}
             else
                 echo "INFO:  Not running as root, will use sudo for rpmbuild command"
-                this_rpm=`sudo ${my_rpmbuild} --define "_topdir ${HOME}/rpmbuild" -bb ${HOME}/rpmbuild/SPECS/${spec_file} 2>&1 | ${my_tee} "${rpmbuild_log}" | ${my_egrep} "^Wrote:" | ${my_sed} -e 's?^Wrote:\ ??g'`
+                this_rpm=`${my_sudo} ${my_rpmbuild} --define "_topdir ${HOME}/rpmbuild" -bb ${HOME}/rpmbuild/SPECS/${spec_file} 2>&1 | ${my_tee} "${rpmbuild_log}" | ${my_egrep} "^Wrote:" | ${my_sed} -e 's?^Wrote:\ ??g'`
             fi
 
         fi
