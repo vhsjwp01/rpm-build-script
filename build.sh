@@ -12,7 +12,8 @@
 #                                   detection for choreography
 # 20150127     Jason W. Plummer     Added copy of RPM into repo dir
 # 20150128     Jason W. Plummer     Added rpmbuild output logging
-#
+# 20150129     Jason W. Plummer     Added embedded code protection
+# 
 
 ################################################################################
 # DESCRIPTION
@@ -65,7 +66,7 @@ return_code=${SUCCESS}
 #
 check_command() {
     return_code=${SUCCESS}
-    my_command="${1}"
+    my_command=`echo "${1}" | sed -e 's?\`??g'`
 
     if [ "${my_command}" != "" ]; then
         my_command_check=`which ${1} 2> /dev/null`
@@ -100,7 +101,7 @@ check_command() {
 #
 if [ ${exit_code} -eq ${SUCCESS} ]; then
 
-    for command in chmod cp dirname egrep find id mkdir pwd rpmbuild rsync sed sort tee ; do
+    for command in chmod cp dirname egrep find hostname id mkdir pwd rm rpmbuild rsync sed sort tee wc ; do
         check_command "${command}"
         let exit_code=${exit_code}+${return_code}
     done
@@ -111,6 +112,7 @@ fi
 # WHY:  Needed later
 #
 if [ ${exit_code} -eq ${SUCCESS} ]; then
+    this_host=`${my_hostname}`
     my_name="${0}"
     this_dir=`${my_dirname} "${0}"`
     cd "${this_dir}" 
@@ -169,8 +171,18 @@ if [ ${exit_code} -eq ${SUCCESS} ]; then
         if [ ${my_uid} -eq 0 ]; then
             this_rpm=`${my_rpmbuild} --define "_topdir ${HOME}/rpmbuild" -bb ${HOME}/rpmbuild/SPECS/${spec_file} 2>&1 | ${my_tee} "${rpmbuild_log}" | ${my_egrep} "^Wrote:" | ${my_sed} -e 's?^Wrote:\ ??g'`
         else
-            echo "INFO:  Not running as root, will use sudo for rpmbuild command"
-            this_rpm=`sudo ${my_rpmbuild} --define "_topdir ${HOME}/rpmbuild" -bb ${HOME}/rpmbuild/SPECS/${spec_file} 2>&1 | ${my_tee} "${rpmbuild_log}" | ${my_egrep} "^Wrote:" | ${my_sed} -e 's?^Wrote:\ ??g'`
+
+            # Check if we have sudo access for rpmbuild
+            let rpmbuild_sudo_check=`${my_sudo} -l | ${my_egrep} "${my_rpmbuild}" | ${my_wc} -l`
+
+            if [ ${rpmbuild_sudo_check} -eq 0 ]; then
+                echo "ERROR:  Please grant sudo access for user account ${USER} to run ${my_rpmbuild} as root on host ${this_host}"
+                exit_code=${ERROR}
+            else
+                echo "INFO:  Not running as root, will use sudo for rpmbuild command"
+                this_rpm=`sudo ${my_rpmbuild} --define "_topdir ${HOME}/rpmbuild" -bb ${HOME}/rpmbuild/SPECS/${spec_file} 2>&1 | ${my_tee} "${rpmbuild_log}" | ${my_egrep} "^Wrote:" | ${my_sed} -e 's?^Wrote:\ ??g'`
+            fi
+
         fi
 
         # No ${this_rpm} means we failed
@@ -190,8 +202,12 @@ if [ ${exit_code} -eq ${SUCCESS} ]; then
   
         fi
 
+        # Copy the build log to the source directory
         if [ -e "${rpmbuild_log}" ]; then
             ${my_cp} "${rpmbuild_log}" .
+
+            # Clean up after ourselves
+            ${my_rm} -f "${rpmbuild_log}"
         fi
 
     done
