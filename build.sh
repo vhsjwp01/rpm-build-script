@@ -13,6 +13,7 @@
 # 20150127     Jason W. Plummer     Added copy of RPM into repo dir
 # 20150128     Jason W. Plummer     Added rpmbuild output logging
 # 20150129     Jason W. Plummer     Added embedded code protection
+# 20150528     Jason W. Plummer     Added support for symlinked SOURCES
 # 
 
 ################################################################################
@@ -141,7 +142,7 @@ if [ ${exit_code} -eq ${SUCCESS} ]; then
         fi
 
         if [ -d "${repo_dir}/${i}" ]; then
-            ${my_rsync} -avHS --progress "${repo_dir}/${i}" "${HOME}/rpmbuild"
+            ${my_rsync} -avLHS --progress "${repo_dir}/${i}" "${HOME}/rpmbuild"
             let exit_code=${exit_code}+${?}
         fi
 
